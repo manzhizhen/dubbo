@@ -239,6 +239,11 @@ public class Constants {
 
     public static final String REMOTE_APPLICATION_KEY = "remote.application";
 
+    /**
+     *
+     */
+    public static final String CONSUMER_APPLICATION_KEY = "_consumerApplication";
+
     public static final String LOCAL_KEY = "local";
 
     public static final String STUB_KEY = "stub";

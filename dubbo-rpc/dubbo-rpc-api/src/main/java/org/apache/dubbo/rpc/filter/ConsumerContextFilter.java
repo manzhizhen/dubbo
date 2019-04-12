@@ -17,6 +17,7 @@
 package org.apache.dubbo.rpc.filter;
 
 import org.apache.dubbo.common.Constants;
+import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.extension.Activate;
 import org.apache.dubbo.common.utils.NetUtils;
 import org.apache.dubbo.rpc.Filter;
@@ -26,6 +27,8 @@ import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcContext;
 import org.apache.dubbo.rpc.RpcException;
 import org.apache.dubbo.rpc.RpcInvocation;
+
+import static org.apache.dubbo.common.Constants.CONSUMER_APPLICATION_KEY;
 
 /**
  * ConsumerContextFilter set current RpcContext with invoker,invocation, local host, remote host and port
@@ -39,12 +42,20 @@ public class ConsumerContextFilter implements Filter {
 
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+
+        URL url = invoker.getUrl();
+
         RpcContext.getContext()
                 .setInvoker(invoker)
                 .setInvocation(invocation)
                 .setLocalAddress(NetUtils.getLocalHost(), 0)
-                .setRemoteAddress(invoker.getUrl().getHost(),
-                        invoker.getUrl().getPort());
+                .setRemoteAddress(url.getHost(), url.getPort());
+
+        String application = url.getParameter(Constants.APPLICATION_KEY);
+        if (application != null) {
+            RpcContext.getContext().setAttachment(CONSUMER_APPLICATION_KEY, application);
+        }
+
         if (invocation instanceof RpcInvocation) {
             ((RpcInvocation) invocation).setInvoker(invoker);
         }

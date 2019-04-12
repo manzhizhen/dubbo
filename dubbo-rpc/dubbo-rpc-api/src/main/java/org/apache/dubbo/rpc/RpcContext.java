@@ -86,7 +86,10 @@ public class RpcContext {
 
     private InetSocketAddress remoteAddress;
 
-    private String remoteApplicationName;
+    /**
+     * This field is used to pass the applicationName of the consumer to the Provider.
+     */
+    private String consumerApplicationName;
 
     @Deprecated
     private List<Invoker<?>> invokers;
@@ -152,7 +155,7 @@ public class RpcContext {
         copy.arguments = this.arguments;
         copy.localAddress = this.localAddress;
         copy.remoteAddress = this.remoteAddress;
-        copy.remoteApplicationName = this.remoteApplicationName;
+        copy.consumerApplicationName = this.consumerApplicationName;
         copy.invokers = this.invokers;
         copy.invoker = this.invoker;
         copy.invocation = this.invocation;
@@ -411,12 +414,12 @@ public class RpcContext {
         return this;
     }
 
-    public String getRemoteApplicationName() {
-        return remoteApplicationName;
+    public String getConsumerApplicationName() {
+        return consumerApplicationName;
     }
 
-    public RpcContext setRemoteApplicationName(String remoteApplicationName) {
-        this.remoteApplicationName = remoteApplicationName;
+    public RpcContext setConsumerApplicationName(String consumerApplicationName) {
+        this.consumerApplicationName = consumerApplicationName;
         return this;
     }
 

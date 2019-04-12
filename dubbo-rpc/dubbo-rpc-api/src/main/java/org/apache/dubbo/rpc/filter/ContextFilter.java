@@ -29,8 +29,6 @@ import org.apache.dubbo.rpc.RpcInvocation;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.apache.dubbo.common.Constants.REMOTE_APPLICATION_KEY;
-
 /**
  * ContextFilter set the provider RpcContext with invoker, invocation, local port it is using and host for
  * current execution thread.
@@ -62,7 +60,7 @@ public class ContextFilter implements Filter {
                 .setInvocation(invocation)
 //                .setAttachments(attachments)  // merged from dubbox
                 .setLocalAddress(invoker.getUrl().getHost(), invoker.getUrl().getPort())
-                .setRemoteApplicationName(invoker.getUrl().getParameter(REMOTE_APPLICATION_KEY));
+                .setConsumerApplicationName(invoker.getUrl().getParameter(Constants.APPLICATION_KEY));
 
         // merged from dubbox
         // we may already added some attachments into RpcContext before this filter (e.g. in rest protocol)
