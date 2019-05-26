@@ -18,7 +18,7 @@ package org.apache.dubbo.config.spring.beans.factory.annotation;
 
 import org.apache.dubbo.common.logger.Logger;
 import org.apache.dubbo.common.logger.LoggerFactory;
-import org.apache.dubbo.config.MethodConfig;
+import org.apache.dubbo.common.utils.ArrayUtils;
 import org.apache.dubbo.config.annotation.Service;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.apache.dubbo.config.spring.context.annotation.DubboClassPathBeanDefinitionScanner;
@@ -54,8 +54,10 @@ import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.apache.dubbo.config.spring.util.ObjectUtils.of;
@@ -89,7 +91,7 @@ public class ServiceAnnotationBeanPostProcessor implements BeanDefinitionRegistr
     }
 
     public ServiceAnnotationBeanPostProcessor(Collection<String> packagesToScan) {
-        this(new LinkedHashSet<String>(packagesToScan));
+        this(new LinkedHashSet<>(packagesToScan));
     }
 
     public ServiceAnnotationBeanPostProcessor(Set<String> packagesToScan) {
@@ -219,7 +221,7 @@ public class ServiceAnnotationBeanPostProcessor implements BeanDefinitionRegistr
 
         Set<BeanDefinition> beanDefinitions = scanner.findCandidateComponents(packageToScan);
 
-        Set<BeanDefinitionHolder> beanDefinitionHolders = new LinkedHashSet<BeanDefinitionHolder>(beanDefinitions.size());
+        Set<BeanDefinitionHolder> beanDefinitionHolders = new LinkedHashSet<>(beanDefinitions.size());
 
         for (BeanDefinition beanDefinition : beanDefinitions) {
 
@@ -290,8 +292,9 @@ public class ServiceAnnotationBeanPostProcessor implements BeanDefinitionRegistr
      */
     private String generateServiceBeanName(Service service, Class<?> interfaceClass, String annotatedServiceBeanName) {
 
-        ServiceBeanNameBuilder builder = ServiceBeanNameBuilder.create(service, interfaceClass, environment);
+        AnnotationBeanNameBuilder builder = AnnotationBeanNameBuilder.create(service, interfaceClass);
 
+        builder.environment(environment);
 
         return builder.build();
 
@@ -316,8 +319,9 @@ public class ServiceAnnotationBeanPostProcessor implements BeanDefinitionRegistr
         }
 
         if (interfaceClass == null) {
-
-            Class<?>[] allInterfaces = annotatedServiceBeanClass.getInterfaces();
+            // Find all interfaces from the annotated class
+            // To resolve an issue : https://github.com/apache/dubbo/issues/3251
+            Class<?>[] allInterfaces = ClassUtils.getAllInterfacesForClass(annotatedServiceBeanClass);
 
             if (allInterfaces.length > 0) {
                 interfaceClass = allInterfaces[0];
@@ -371,7 +375,7 @@ public class ServiceAnnotationBeanPostProcessor implements BeanDefinitionRegistr
         MutablePropertyValues propertyValues = beanDefinition.getPropertyValues();
 
         String[] ignoreAttributeNames = of("provider", "monitor", "application", "module", "registry", "protocol",
-                "interface", "interfaceName");
+                "interface", "interfaceName", "parameters");
 
         propertyValues.addPropertyValues(new AnnotationPropertyValuesAdapter(service, environment, ignoreAttributeNames));
 
@@ -379,6 +383,8 @@ public class ServiceAnnotationBeanPostProcessor implements BeanDefinitionRegistr
         addPropertyReference(builder, "ref", annotatedServiceBeanName);
         // Set interface
         builder.addPropertyValue("interface", interfaceClass.getName());
+        // Convert parameters into map
+        builder.addPropertyValue("parameters", convertParameters(service.parameters()));
 
         /**
          * Add {@link org.apache.dubbo.config.ProviderConfig} Bean reference
@@ -435,11 +441,6 @@ public class ServiceAnnotationBeanPostProcessor implements BeanDefinitionRegistr
             builder.addPropertyValue("protocols", protocolRuntimeBeanReferences);
         }
 
-        List<MethodConfig> methodConfigs = MethodConfig.constructMethodConfig(service.methods());
-        if (!methodConfigs.isEmpty()) {
-            builder.addPropertyValue("methods", methodConfigs);
-        }
-
         return builder.getBeanDefinition();
 
     }
@@ -447,7 +448,7 @@ public class ServiceAnnotationBeanPostProcessor implements BeanDefinitionRegistr
 
     private ManagedList<RuntimeBeanReference> toRuntimeBeanReferences(String... beanNames) {
 
-        ManagedList<RuntimeBeanReference> runtimeBeanReferences = new ManagedList<RuntimeBeanReference>();
+        ManagedList<RuntimeBeanReference> runtimeBeanReferences = new ManagedList<>();
 
         if (!ObjectUtils.isEmpty(beanNames)) {
 
@@ -469,6 +470,22 @@ public class ServiceAnnotationBeanPostProcessor implements BeanDefinitionRegistr
         builder.addPropertyReference(propertyName, resolvedBeanName);
     }
 
+
+    private Map<String, String> convertParameters(String[] parameters) {
+        if (ArrayUtils.isEmpty(parameters)) {
+            return null;
+        }
+
+        if (parameters.length % 2 != 0) {
+            throw new IllegalArgumentException("parameter attribute must be paired with key followed by value");
+        }
+
+        Map<String, String> map = new HashMap<>();
+        for (int i = 0; i < parameters.length; i += 2) {
+            map.put(parameters[i], parameters[i + 1]);
+        }
+        return map;
+    }
 
     @Override
     public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
