@@ -414,6 +414,11 @@ public class RpcContext {
         return this;
     }
 
+    /**
+     * The Provider can use this method to obtain the consumerApplicationName passed from the Consumer side.
+     *
+     * @return
+     */
     public String getConsumerApplicationName() {
         return consumerApplicationName;
     }
