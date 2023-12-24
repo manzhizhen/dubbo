@@ -85,7 +85,7 @@ public class DecodeableRpcInvocation extends RpcInvocation implements Codec, Dec
             Boolean.parseBoolean(System.getProperty(SERIALIZATION_SECURITY_CHECK_KEY, "true"));
 
     public DecodeableRpcInvocation(
-            FrameworkModel frameworkModel, Channel channel, Request request, InputStream is, byte id) {
+            FrameworkModel frameworkModel, Channel channel, Request request, InputStream is, byte serializationType) {
         this.frameworkModel = frameworkModel;
         Assert.notNull(channel, "channel == null");
         Assert.notNull(request, "request == null");
@@ -93,7 +93,7 @@ public class DecodeableRpcInvocation extends RpcInvocation implements Codec, Dec
         this.channel = channel;
         this.request = request;
         this.inputStream = is;
-        this.serializationType = id;
+        this.serializationType = serializationType;
         this.callbackServiceCodecFactory =
                 CacheableSupplier.newSupplier(() -> new CallbackServiceCodec(frameworkModel));
     }
@@ -123,7 +123,7 @@ public class DecodeableRpcInvocation extends RpcInvocation implements Codec, Dec
     @Override
     public Object decode(Channel channel, InputStream input) throws IOException {
         int contentLength = input.available();
-        getAttributes().put(Constants.CONTENT_LENGTH_KEY, contentLength);
+        this.put(Constants.CONTENT_LENGTH_KEY, contentLength);
 
         ObjectInput in = CodecSupport.getSerialization(serializationType).deserialize(channel.getUrl(), input);
         this.put(SERIALIZATION_ID_KEY, serializationType);
